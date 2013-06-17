@@ -1,35 +1,64 @@
-#
-# Author: Jakob Engel <jajuengel@gmail.com>
-#
- 
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 2.8.3)
+project(tum_ardrone)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-set(ROS_BUILD_TYPE RelWithDebInfo)
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+#find_package(catkin REQUIRED COMPONENTS ardrone_autonomy dynamic_reconfigure roscpp cv_bridge sensor_msgs std_srvs std_msgs geometry_msgs rosconsole roscpp_serialization message_generation rostime)
+find_package(catkin REQUIRED COMPONENTS ardrone_autonomy )
+find_package(catkin REQUIRED roscpp roslib tf dynamic_reconfigure cv_bridge sensor_msgs std_srvs std_msgs geometry_msgs message_generation)
 
-rosbuild_init()
-
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+## System dependencies are found with CMake's conventions
+find_package(Boost REQUIRED COMPONENTS system)
 
 
-# ------------------- add dynamic reconfigure api ------------------------------------
-rosbuild_find_ros_package(dynamic_reconfigure)
-include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
-gencfg()
+## Uncomment this if the package has a setup.py. This macro ensures
+## modules and global scripts declared therein get installed
+## See http://ros.org/doc/groovy/api/catkin/html/user_guide/setup_dot_py.html
+# catkin_python_setup()
+
+#######################################
+## Declare ROS messages and services ##
+#######################################
+
+# Generate messages in the 'msg' folder
+add_message_files(
+	FILES
+	filter_state.msg
+)
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+   DEPENDENCIES
+   std_msgs  # Or other packages containing msgs
+)
+
+#add dynamic reconfigure api
+generate_dynamic_reconfigure_options(cfg/AutopilotParams.cfg cfg/GUIParams.cfg cfg/StateestimationParams.cfg)
 
 
+###################################
+## catkin specific configuration ##
+###################################
+## The catkin_package macro generates cmake config files for your package
+## Declare things to be passed to dependent projects
+## LIBRARIES: libraries you create in this project that dependent projects also need
+## CATKIN_DEPENDS: catkin_packages dependent projects also need
+## DEPENDS: system dependencies of this project that dependent projects also need
+catkin_package(
+#   INCLUDE_DIRS include
+#  LIBRARIES tum_ardrone
+#	CATKIN_DEPENDS ardrone_autonomy dynamic_reconfigure roscpp cv_bridge std_srvs std_msgs sensor_msgs geometry_msgs message_runtime rosconsole roscpp_serialization message_generation rostime
+	CATKIN_DEPENDS ardrone_autonomy dynamic_reconfigure roscpp message_runtime
+	DEPENDS qt4 libblas-dev liblapack-dev
+)
+
+####################
+## Define Sources ##
+####################
 
 
-# --------------------------- stateestimation & PTAM --------------------------------
+# --------------------------- stateestimation & PTAM source --------------------------------
 # set header ans source files
 set(STATEESTIMATION_SOURCE_FILES       
 	src/stateestimation/GLWindow2.cc
@@ -37,22 +66,22 @@ set(STATEESTIMATION_SOURCE_FILES
 	src/stateestimation/main_stateestimation.cpp
 	src/stateestimation/DroneKalmanFilter.cpp
 	src/stateestimation/Predictor.cpp
-  src/stateestimation/PTAMWrapper.cpp
-  src/stateestimation/MapView.cpp
-  src/stateestimation/EstimationNode.cpp
-  src/stateestimation/PTAM/ATANCamera.cc
-  src/stateestimation/PTAM/Bundle.cc
-  src/stateestimation/PTAM/HomographyInit.cc
-  src/stateestimation/PTAM/KeyFrame.cc
-  src/stateestimation/PTAM/Map.cc
-  src/stateestimation/PTAM/MapMaker.cc
-  src/stateestimation/PTAM/MapPoint.cc
-  src/stateestimation/PTAM/MiniPatch.cc
-  src/stateestimation/PTAM/PatchFinder.cc
-  src/stateestimation/PTAM/Relocaliser.cc
-  src/stateestimation/PTAM/ShiTomasi.cc
-  src/stateestimation/PTAM/SmallBlurryImage.cc
-  src/stateestimation/PTAM/Tracker.cc
+	src/stateestimation/PTAMWrapper.cpp
+	src/stateestimation/MapView.cpp
+	src/stateestimation/EstimationNode.cpp
+	src/stateestimation/PTAM/ATANCamera.cc
+	src/stateestimation/PTAM/Bundle.cc
+	src/stateestimation/PTAM/HomographyInit.cc
+	src/stateestimation/PTAM/KeyFrame.cc
+	src/stateestimation/PTAM/Map.cc
+	src/stateestimation/PTAM/MapMaker.cc
+	src/stateestimation/PTAM/MapPoint.cc
+	src/stateestimation/PTAM/MiniPatch.cc
+	src/stateestimation/PTAM/PatchFinder.cc
+	src/stateestimation/PTAM/Relocaliser.cc
+	src/stateestimation/PTAM/ShiTomasi.cc
+	src/stateestimation/PTAM/SmallBlurryImage.cc
+	src/stateestimation/PTAM/Tracker.cc
 )
 set(STATEESTIMATION_HEADER_FILES    
   src/stateestimation/GLWindow2.h 
@@ -87,28 +116,8 @@ set(STATEESTIMATION_HEADER_FILES
   src/stateestimation/PTAM/VideoSource.h
 )
 
-# set required libs and headers
-include_directories(
-  ${PROJECT_SOURCE_DIR}/thirdparty/TooN/include 
-  ${PROJECT_SOURCE_DIR}/thirdparty/libcvd/include 
-  ${PROJECT_SOURCE_DIR}/thirdparty/gvars3/include 
-)  
 
-link_directories(
-  ${PROJECT_SOURCE_DIR}/thirdparty/libcvd/lib 
-  ${PROJECT_SOURCE_DIR}/thirdparty/gvars3/lib 
-)
-set(PTAM_LIBRARIES GL glut cvd GVars3 blas lapack)
-add_definitions(-DKF_REPROJ)
-
-# build!
-rosbuild_add_executable(drone_stateestimation ${STATEESTIMATION_SOURCE_FILES} ${STATEESTIMATION_HEADER_FILES})
-rosbuild_add_compile_flags(drone_stateestimation -D_LINUX -D_REENTRANT -Wall  -O3 -march=nocona -msse3) 
-target_link_libraries(drone_stateestimation ${PTAM_LIBRARIES})
-
-
-
-# ------------------------- autopilot & KI -----------------------------------------
+# ------------------------- autopilot & KI source -----------------------------------------
 # set header ans source files
 set(AUTOPILOT_SOURCE_FILES         
 	src/autopilot/main_autopilot.cpp  
@@ -127,12 +136,7 @@ set(AUTOPILOT_HEADER_FILES
 	src/autopilot/KI/KIProcedure.h
 )
 
-# build!
-rosbuild_add_executable(drone_autopilot ${AUTOPILOT_SOURCE_FILES} ${AUTOPILOT_HEADER_FILES})
-
-
-
-# ---------------------------- GUI --------------------------------------------------
+# ---------------------------- GUI source --------------------------------------------------
 # set header ans source files
 set(GUI_SOURCE_FILES         
 	src/UINode/main_GUI.cpp  
@@ -146,6 +150,48 @@ set(GUI_HEADER_FILES
 	src/UINode/RosThread.h  
 	src/UINode/PingThread.h  
 )
+
+###########
+## Build ##
+###########
+
+
+
+
+# set required libs and headers
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}/thirdparty/TooN/include 
+  ${PROJECT_SOURCE_DIR}/thirdparty/libcvd/include 
+  ${PROJECT_SOURCE_DIR}/thirdparty/gvars3/include 
+)  
+
+link_directories(
+  ${PROJECT_SOURCE_DIR}/lib/
+  ${PROJECT_SOURCE_DIR}/thirdparty/libcvd/lib 
+  ${PROJECT_SOURCE_DIR}/thirdparty/gvars3/lib 
+)
+set(PTAM_LIBRARIES GL glut cvd GVars3 blas lapack)
+add_definitions(-DKF_REPROJ)
+
+## State Estimation build
+add_executable(drone_stateestimation ${STATEESTIMATION_SOURCE_FILES} ${STATEESTIMATION_HEADER_FILES})
+set_target_properties(drone_stateestimation PROPERTIES COMPILE_FLAGS "-D_LINUX -D_REENTRANT -Wall  -O3 -march=nocona -msse3")
+add_dependencies(drone_stateestimation StateestimationParams ) #from dynamic reconfigure api
+target_link_libraries(drone_stateestimation ${catkin_LIBRARIES} ${PTAM_LIBRARIES})
+
+#message(STATUS "catkin libraries are:")
+#foreach (_variableName ${catkin_LIBRARIES})
+#    message(STATUS "${_variableName}")
+#endforeach()
+
+## autopilot and KI build
+add_executable(drone_autopilot ${AUTOPILOT_SOURCE_FILES} ${AUTOPILOT_HEADER_FILES})
+add_dependencies(drone_autopilot AutopilotParams drone_stateestimation) #from dynamic reconfigure api
+target_link_libraries(drone_autopilot ${catkin_LIBRARIES} )
+
+## GUI build
 
 # *.ui
 set(GUI_UI_FILES        
@@ -165,15 +211,9 @@ QT4_WRAP_UI(GUI_UI_FILES_HPP ${GUI_UI_FILES})
 QT4_WRAP_CPP(GUI_HEADER_FILES_HPP ${GUI_HEADER_FILES})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-# build!
-rosbuild_add_executable(drone_gui ${GUI_SOURCE_FILES} ${GUI_RESOURCE_FILES_CPP} ${GUI_UI_FILES_HPP} ${GUI_HEADER_FILES_HPP})
-target_link_libraries(drone_gui ${QT_LIBRARIES} cvd)
+## GUI build
+add_executable(drone_gui ${GUI_SOURCE_FILES} ${GUI_RESOURCE_FILES_CPP} ${GUI_UI_FILES_HPP} ${GUI_HEADER_FILES_HPP})
+add_dependencies(drone_gui GUIParams drone_stateestimation) #from dynamic reconfigure api
+target_link_libraries(drone_gui ${catkin_LIBRARIES} ${QT_LIBRARIES} cvd)
 
 
-
-
-# ---------------------------- Messages & Services --------------------------------------------------
-#uncomment if you have defined messages
-rosbuild_genmsg()
-#uncomment if you have defined services
-rosbuild_gensrv()
